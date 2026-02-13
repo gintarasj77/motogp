@@ -1,4 +1,4 @@
-# MotoGP 2026 Countdown (LT)
+# MotoGP 2026 Countdown
 
 Small static site that shows the next MotoGP race in Lithuania time, a live countdown, season progress, and the full 2026 calendar.
 
