@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MotoGP 2026 Countdown</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background">
+      <div class="glow"></div>
+      <div class="glow two"></div>
+      <div class="noise"></div>
+    </div>
+
+    <main class="app">
+      <header class="hero">
+        <div class="hero-left">
+          <span class="tag">2026 MotoGP • Lithuania Time</span>
+          <h1>Race Pulse</h1>
+        </div>
+        <div class="hero-right">
+          <div class="today-card">
+            <span class="label">Today</span>
+            <strong id="today">—</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="spotlight">
+        <article class="panel next">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow">Next Grand Prix</span>
+              <h2 id="next-title">Loading…</h2>
+            </div>
+            <span class="pill" id="next-round"></span>
+          </div>
+          <div class="meta">
+            <div>
+              <span class="label">Date</span>
+              <strong id="next-date">—</strong>
+            </div>
+            <div>
+              <span class="label">Start</span>
+              <strong id="next-time">—</strong>
+            </div>
+            <div>
+              <span class="label">Location</span>
+              <strong id="next-location">—</strong>
+            </div>
+            <div>
+              <span class="label">Circuit</span>
+              <strong id="next-circuit">—</strong>
+            </div>
+          </div>
+          <div class="countdown" id="countdown">—</div>
+          <p class="note" id="countdown-note"></p>
+        </article>
+
+        <aside class="panel stats">
+          <h2>Season Progress</h2>
+          <div class="stat-grid">
+            <div>
+              <span class="label">Races completed</span>
+              <strong id="completed">0</strong>
+            </div>
+            <div>
+              <span class="label">Races remaining</span>
+              <strong id="remaining">0</strong>
+            </div>
+            <div>
+              <span class="label">Total rounds</span>
+              <strong id="total">0</strong>
+            </div>
+          </div>
+          <div class="progress">
+            <div class="bar" id="progress-bar"></div>
+          </div>
+          <p class="note" id="season-note"></p>
+        </aside>
+      </section>
+
+      <section class="list">
+        <div class="list-header">
+          <h2>Full Calendar</h2>
+          <span class="pill">All times in LT</span>
+        </div>
+        <div id="race-list" class="race-list"></div>
+      </section>
+    </main>
+
+    <script id="race-data" type="application/json">
+{
+  "season": 2026,
+  "timezone": "Europe/Vilnius",
+  "timezoneLabel": "LT (EET/EEST)",
+  "races": [
+    {
+      "round": 1,
+      "grandPrix": "Thailand",
+      "dateLabel": "Mar 1, 2026",
+      "startIso": "2026-03-01T10:00:00+02:00",
+      "location": "Buriram",
+      "circuit": "Chang International Circuit"
+    },
+    {
+      "round": 2,
+      "grandPrix": "Brazil",
+      "dateLabel": "Mar 22, 2026",
+      "startIso": "2026-03-22T20:00:00+02:00",
+      "location": "Goiania",
+      "circuit": "Autodromo Internacional de Goiania - Ayrton Senna"
+    },
+    {
+      "round": 3,
+      "grandPrix": "USA (Americas GP)",
+      "dateLabel": "Mar 29, 2026",
+      "startIso": "2026-03-29T22:00:00+03:00",
+      "location": "Austin",
+      "circuit": "Circuit Of The Americas"
+    },
+    {
+      "round": 4,
+      "grandPrix": "Qatar",
+      "dateLabel": "Apr 12, 2026",
+      "startIso": "2026-04-12T20:00:00+03:00",
+      "location": "Lusail",
+      "circuit": "Lusail International Circuit"
+    },
+    {
+      "round": 5,
+      "grandPrix": "Spain (Jerez)",
+      "dateLabel": "Apr 26, 2026",
+      "startIso": "2026-04-26T15:00:00+03:00",
+      "location": "Jerez",
+      "circuit": "Circuito de Jerez - Angel Nieto"
+    },
+    {
+      "round": 6,
+      "grandPrix": "France",
+      "dateLabel": "May 10, 2026",
+      "startIso": "2026-05-10T15:00:00+03:00",
+      "location": "Le Mans",
+      "circuit": "Le Mans"
+    },
+    {
+      "round": 7,
+      "grandPrix": "Catalonia",
+      "dateLabel": "May 17, 2026",
+      "startIso": "2026-05-17T15:00:00+03:00",
+      "location": "Barcelona",
+      "circuit": "Circuit de Barcelona-Catalunya"
+    },
+    {
+      "round": 8,
+      "grandPrix": "Italy",
+      "dateLabel": "May 31, 2026",
+      "startIso": "2026-05-31T15:00:00+03:00",
+      "location": "Mugello",
+      "circuit": "Autodromo Internazionale del Mugello"
+    },
+    {
+      "round": 9,
+      "grandPrix": "Hungary",
+      "dateLabel": "Jun 7, 2026",
+      "startIso": "2026-06-07T15:00:00+03:00",
+      "location": "Balaton",
+      "circuit": "Balaton Park"
+    },
+    {
+      "round": 10,
+      "grandPrix": "Czechia",
+      "dateLabel": "Jun 21, 2026",
+      "startIso": "2026-06-21T15:00:00+03:00",
+      "location": "Brno",
+      "circuit": "Automotodrom Brno"
+    },
+    {
+      "round": 11,
+      "grandPrix": "Netherlands (TT Assen)",
+      "dateLabel": "Jun 28, 2026",
+      "startIso": "2026-06-28T15:00:00+03:00",
+      "location": "Assen",
+      "circuit": "TT Circuit Assen"
+    },
+    {
+      "round": 12,
+      "grandPrix": "Germany",
+      "dateLabel": "Jul 12, 2026",
+      "startIso": "2026-07-12T15:00:00+03:00",
+      "location": "Sachsenring",
+      "circuit": "Sachsenring"
+    },
+    {
+      "round": 13,
+      "grandPrix": "Great Britain",
+      "dateLabel": "Aug 9, 2026",
+      "startIso": "2026-08-09T15:00:00+03:00",
+      "location": "Silverstone",
+      "circuit": "Silverstone Circuit"
+    },
+    {
+      "round": 14,
+      "grandPrix": "Aragon",
+      "dateLabel": "Aug 30, 2026",
+      "startIso": "2026-08-30T15:00:00+03:00",
+      "location": "Alcaniz",
+      "circuit": "MotorLand Aragon"
+    },
+    {
+      "round": 15,
+      "grandPrix": "San Marino",
+      "dateLabel": "Sep 13, 2026",
+      "startIso": "2026-09-13T15:00:00+03:00",
+      "location": "Misano",
+      "circuit": "Misano World Circuit Marco Simoncelli"
+    },
+    {
+      "round": 16,
+      "grandPrix": "Austria",
+      "dateLabel": "Sep 20, 2026",
+      "startIso": "2026-09-20T15:00:00+03:00",
+      "location": "Spielberg",
+      "circuit": "Red Bull Ring - Spielberg"
+    },
+    {
+      "round": 17,
+      "grandPrix": "Japan",
+      "dateLabel": "Oct 4, 2026",
+      "startIso": "2026-10-04T08:00:00+03:00",
+      "location": "Motegi",
+      "circuit": "Mobility Resort Motegi"
+    },
+    {
+      "round": 18,
+      "grandPrix": "Indonesia",
+      "dateLabel": "Oct 11, 2026",
+      "startIso": "2026-10-11T09:00:00+03:00",
+      "location": "Mandalika",
+      "circuit": "Pertamina Mandalika International Circuit"
+    },
+    {
+      "round": 19,
+      "grandPrix": "Australia",
+      "dateLabel": "Oct 25, 2026",
+      "startIso": "2026-10-25T06:00:00+02:00",
+      "location": "Phillip Island",
+      "circuit": "Phillip Island"
+    },
+    {
+      "round": 20,
+      "grandPrix": "Malaysia",
+      "dateLabel": "Nov 1, 2026",
+      "startIso": "2026-11-01T09:00:00+02:00",
+      "location": "Sepang",
+      "circuit": "Petronas Sepang International Circuit"
+    },
+    {
+      "round": 21,
+      "grandPrix": "Portugal",
+      "dateLabel": "Nov 15, 2026",
+      "startIso": "2026-11-15T16:00:00+02:00",
+      "location": "Portimao",
+      "circuit": "Autodromo Internacional do Algarve"
+    },
+    {
+      "round": 22,
+      "grandPrix": "Valencia",
+      "dateLabel": "Nov 22, 2026",
+      "startIso": "2026-11-22T15:00:00+02:00",
+      "location": "Cheste",
+      "circuit": "Circuit Ricardo Tormo"
+    }
+  ]
+}
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>
