@@ -17,22 +17,22 @@
     <main class="app">
       <header class="hero">
         <div class="hero-left">
-          <span class="tag">2026 MotoGP • Lithuania Time</span>
+          <span class="tag">2026 MotoGP - Lithuania Time</span>
           <h1>Race Pulse</h1>
         </div>
         <div class="hero-right">
           <div class="today-card">
             <span class="label">Today</span>
-            <strong id="today">—</strong>
+            <strong id="today">-</strong>
           </div>
           <div class="support-block" aria-label="Support links">
             <span class="support-label">Buy me a coffee</span>
             <div class="support-links">
               <a class="support-link" href="https://github.com/sponsors/gintarasj77" target="_blank" rel="noopener noreferrer" aria-label="GitHub Sponsors">
-                <img class="support-logo" alt="GitHub" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png">
+                <img class="support-logo" alt="GitHub" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" />
               </a>
               <a class="support-link" href="https://buy.stripe.com/28E3cneUn18y3ajgvd67S00" target="_blank" rel="noopener noreferrer" aria-label="Stripe">
-                <img class="support-logo" alt="Stripe" src="https://stripe.com/favicon.ico">
+                <img class="support-logo" alt="Stripe" src="https://stripe.com/favicon.ico" />
               </a>
             </div>
           </div>
@@ -44,29 +44,29 @@
           <div class="panel-header">
             <div>
               <span class="eyebrow">Next Grand Prix</span>
-              <h2 id="next-title">Loading…</h2>
+              <h2 id="next-title">Loading...</h2>
             </div>
             <span class="pill" id="next-round"></span>
           </div>
           <div class="meta">
             <div>
               <span class="label">Date</span>
-              <strong id="next-date">—</strong>
+              <strong id="next-date">-</strong>
             </div>
             <div>
               <span class="label">Start</span>
-              <strong id="next-time">—</strong>
+              <strong id="next-time">-</strong>
             </div>
             <div>
               <span class="label">Location</span>
-              <strong id="next-location">—</strong>
+              <strong id="next-location">-</strong>
             </div>
             <div>
               <span class="label">Circuit</span>
-              <strong id="next-circuit">—</strong>
+              <strong id="next-circuit">-</strong>
             </div>
           </div>
-          <div class="countdown" id="countdown">—</div>
+          <div class="countdown" id="countdown">-</div>
           <p class="note" id="countdown-note"></p>
         </article>
 
@@ -102,12 +102,12 @@
       </section>
     </main>
 
-
     <script id="race-data" type="application/json">
 {
   "season": 2026,
   "timezone": "Europe/Vilnius",
   "timezoneLabel": "LT (EET/EEST)",
+  "defaultRaceDurationMinutes": 120,
   "races": [
     {
       "round": 1,
@@ -288,9 +288,9 @@
   ]
 }
     </script>
+    <script src="race_logic.js"></script>
     <script src="app.js"></script>
-    <!-- 100% privacy-first analytics -->
     <script data-collect-dnt="true" async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
-    <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif?collect-dnt=true" alt="" referrerpolicy="no-referrer-when-downgrade"/></noscript>
+    <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif?collect-dnt=true" alt="" referrerpolicy="no-referrer-when-downgrade" /></noscript>
   </body>
 </html>

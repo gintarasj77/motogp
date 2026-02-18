@@ -1,5 +1,3 @@
-const TIMEZONE = "Europe/Vilnius";
-
 const elements = {
   today: document.getElementById("today"),
   nextTitle: document.getElementById("next-title"),
@@ -18,66 +16,73 @@ const elements = {
   raceList: document.getElementById("race-list")
 };
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: TIMEZONE,
-  day: "2-digit",
-  month: "short",
-  year: "numeric"
-});
-
-const timeFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: TIMEZONE,
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false
-});
-
-const todayFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: TIMEZONE,
-  weekday: "long",
-  day: "2-digit",
-  month: "long",
-  year: "numeric"
-});
-
-function formatCountdown(ms) {
-  if (ms <= 0) {
-    return "Race underway";
-  }
-  const totalSeconds = Math.floor(ms / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+function createFormatters(timeZone) {
+  return {
+    date: new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }),
+    time: new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }),
+    today: new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    })
+  };
 }
 
-function buildRaceList(races, now) {
-  elements.raceList.innerHTML = "";
+function appendTextSpan(parent, className, text) {
+  const span = document.createElement("span");
+  span.className = className;
+  span.textContent = text;
+  parent.appendChild(span);
+}
+
+function clearChildren(node) {
+  while (node.firstChild) {
+    node.removeChild(node.firstChild);
+  }
+}
+
+function buildRaceList(races, now, formatters, defaultRaceDurationMinutes) {
+  clearChildren(elements.raceList);
+
   races.forEach((race, index) => {
-    const start = new Date(race.startIso);
-    const isPast = start <= now;
+    const start = RaceLogic.getRaceStart(race);
+    const isFinished = RaceLogic.isRaceFinished(race, now, defaultRaceDurationMinutes);
+    const isUnderway = RaceLogic.isRaceUnderway(race, now, defaultRaceDurationMinutes);
 
     const card = document.createElement("div");
     card.className = "race-item";
     card.style.animationDelay = `${index * 0.04}s`;
-    if (isPast) {
-      card.style.opacity = "0.6";
+
+    if (isFinished) {
+      card.classList.add("finished");
+    }
+    if (isUnderway) {
+      card.classList.add("underway");
     }
 
-    card.innerHTML = `
-      <span class="round">Round ${race.round}</span>
-      <span class="race-name">${race.grandPrix}</span>
-      <span class="race-meta">${dateFormatter.format(start)} • ${timeFormatter.format(start)}</span>
-      <span class="race-meta">${race.location} • ${race.circuit}</span>
-    `;
+    appendTextSpan(card, "round", `Round ${race.round}`);
+    appendTextSpan(card, "race-name", race.grandPrix);
+    appendTextSpan(card, "race-meta", `${formatters.date.format(start)} - ${formatters.time.format(start)}`);
+    appendTextSpan(card, "race-meta", `${race.location} - ${race.circuit}`);
 
     elements.raceList.appendChild(card);
   });
 }
 
-function updateSeasonStats(races, now) {
-  const completed = races.filter((race) => new Date(race.startIso) <= now).length;
+function updateSeasonStats(races, now, defaultRaceDurationMinutes) {
+  const completed = RaceLogic.getCompletedCount(races, now, defaultRaceDurationMinutes);
   const total = races.length;
   const remaining = Math.max(total - completed, 0);
   const progress = total === 0 ? 0 : (completed / total) * 100;
@@ -91,77 +96,109 @@ function updateSeasonStats(races, now) {
     : `${remaining} race${remaining === 1 ? "" : "s"} left after today.`;
 }
 
-function updateNextRace(races, now) {
-  const nextRace = races.find((race) => new Date(race.startIso) > now);
-  if (!nextRace) {
+function updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinutes) {
+  const race = RaceLogic.getCurrentOrNextRace(races, now, defaultRaceDurationMinutes);
+
+  if (!race) {
     elements.nextTitle.textContent = "Season Complete";
     elements.nextRound.textContent = "";
-    elements.nextDate.textContent = "—";
-    elements.nextTime.textContent = "—";
-    elements.nextLocation.textContent = "—";
-    elements.nextCircuit.textContent = "—";
+    elements.nextDate.textContent = "-";
+    elements.nextTime.textContent = "-";
+    elements.nextLocation.textContent = "-";
+    elements.nextCircuit.textContent = "-";
     elements.countdown.textContent = "All races finished";
     elements.countdownNote.textContent = "See you next season.";
     return null;
   }
 
-  const start = new Date(nextRace.startIso);
-  elements.nextTitle.textContent = nextRace.grandPrix;
-  elements.nextRound.textContent = `Round ${nextRace.round}`;
-  elements.nextDate.textContent = dateFormatter.format(start);
-  elements.nextTime.textContent = `${timeFormatter.format(start)}`;
-  elements.nextLocation.textContent = nextRace.location;
-  elements.nextCircuit.textContent = nextRace.circuit;
-  elements.countdownNote.textContent = `Countdown to the MotoGP Grand Prix start.`;
+  const start = RaceLogic.getRaceStart(race);
+  const end = RaceLogic.getRaceEnd(race, defaultRaceDurationMinutes);
+  const isUnderway = RaceLogic.isRaceUnderway(race, now, defaultRaceDurationMinutes);
 
-  return start;
-}
+  elements.nextTitle.textContent = isUnderway ? `${race.grandPrix} (Live)` : race.grandPrix;
+  elements.nextRound.textContent = `Round ${race.round}`;
+  elements.nextDate.textContent = formatters.date.format(start);
+  elements.nextTime.textContent = `${formatters.time.format(start)}`;
+  elements.nextLocation.textContent = race.location;
+  elements.nextCircuit.textContent = race.circuit;
+  elements.countdownNote.textContent = isUnderway
+    ? "Race is underway. Countdown switches after finish."
+    : "Countdown to the MotoGP Grand Prix start.";
 
-async function loadData() {
-  const embedded = document.getElementById("race-data");
-  if (embedded && embedded.textContent.trim()) {
-    return JSON.parse(embedded.textContent);
+  if (isUnderway) {
+    elements.countdown.textContent = "Race underway";
   }
 
-  const response = await fetch("data.json");
-  return response.json();
+  return { race, start, end };
 }
 
-async function init() {
-  const data = await loadData();
-  const races = data.races.slice().sort((a, b) => new Date(a.startIso) - new Date(b.startIso));
+function loadData() {
+  const embedded = document.getElementById("race-data");
+  if (!embedded || !embedded.textContent.trim()) {
+    throw new Error("Embedded race data was not found.");
+  }
 
-  elements.today.textContent = `Today: ${todayFormatter.format(new Date())}`;
+  return JSON.parse(embedded.textContent);
+}
 
-  buildRaceList(races, new Date());
+function init() {
+  if (typeof RaceLogic === "undefined") {
+    throw new Error("race_logic.js is not loaded.");
+  }
 
-  let nextStart = updateNextRace(races, new Date());
-  updateSeasonStats(races, new Date());
+  const data = loadData();
+  const races = Array.isArray(data.races)
+    ? data.races.slice().sort((a, b) => new Date(a.startIso) - new Date(b.startIso))
+    : [];
+  const timeZone = typeof data.timezone === "string" && data.timezone
+    ? data.timezone
+    : "Europe/Vilnius";
+  const defaultRaceDurationMinutes = Number.isFinite(data.defaultRaceDurationMinutes)
+    && data.defaultRaceDurationMinutes > 0
+    ? data.defaultRaceDurationMinutes
+    : RaceLogic.DEFAULT_RACE_DURATION_MINUTES;
+  const formatters = createFormatters(timeZone);
+
+  let trackedRace = null;
+  let trackedStart = null;
+  let trackedEnd = null;
+
+  const refreshCalendarAndStats = () => {
+    const now = new Date();
+    const eventInfo = updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinutes);
+
+    trackedRace = eventInfo ? eventInfo.race : null;
+    trackedStart = eventInfo ? eventInfo.start : null;
+    trackedEnd = eventInfo ? eventInfo.end : null;
+
+    elements.today.textContent = `Today: ${formatters.today.format(now)}`;
+    buildRaceList(races, now, formatters, defaultRaceDurationMinutes);
+    updateSeasonStats(races, now, defaultRaceDurationMinutes);
+  };
 
   const updateCountdown = () => {
+    if (!trackedRace || !trackedStart || !trackedEnd) {
+      return;
+    }
+
     const now = new Date();
-    if (nextStart && now > nextStart) {
-      nextStart = updateNextRace(races, now);
-      updateSeasonStats(races, now);
+    if (now >= trackedEnd) {
+      refreshCalendarAndStats();
+      return;
     }
-    if (nextStart) {
-      const diff = nextStart - now;
-      elements.countdown.textContent = formatCountdown(diff);
-    }
+    elements.countdown.textContent = RaceLogic.formatCountdown(trackedStart - now);
   };
 
-  const refreshStats = () => {
-    const now = new Date();
-    updateSeasonStats(races, now);
-  };
-
+  refreshCalendarAndStats();
   updateCountdown();
   setInterval(updateCountdown, 1000);
-  setInterval(refreshStats, 60 * 1000);
+  setInterval(refreshCalendarAndStats, 60 * 1000);
 }
 
-init().catch((error) => {
+try {
+  init();
+} catch (error) {
   elements.nextTitle.textContent = "Data load failed";
-  elements.countdown.textContent = "Check data.json";
+  elements.countdown.textContent = "Check embedded race data";
   console.error(error);
-});
+}

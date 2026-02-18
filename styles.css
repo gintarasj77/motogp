@@ -307,6 +307,14 @@ h2 {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.race-item.finished {
+  opacity: 0.6;
+}
+
+.race-item.underway {
+  border-color: rgba(255, 61, 33, 0.55);
+}
+
 .race-item:hover {
   transform: translateY(-3px);
   box-shadow: 0 18px 34px var(--shadow-strong);

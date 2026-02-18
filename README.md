@@ -8,4 +8,13 @@ Open `index.html` in a browser (no build step).
 
 ## Data
 
-Edit `data.json` to update race times or add future seasons.
+Edit the embedded JSON block in `index.html` (`<script id="race-data" type="application/json">`).
+
+- `timezone` controls formatting (defaults to `Europe/Vilnius` if missing).
+- `defaultRaceDurationMinutes` controls when a race is treated as finished (default `120`).
+
+## Tests
+
+Run:
+
+`node --test tests/race-logic.test.js`
