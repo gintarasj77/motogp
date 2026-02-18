@@ -1,4 +1,6 @@
 const elements = {
+  themeToggle: document.getElementById("theme-toggle"),
+  themeToggleLabel: document.getElementById("theme-toggle-label"),
   today: document.getElementById("today"),
   nextTitle: document.getElementById("next-title"),
   nextRound: document.getElementById("next-round"),
@@ -15,6 +17,73 @@ const elements = {
   seasonNote: document.getElementById("season-note"),
   raceList: document.getElementById("race-list")
 };
+
+const THEME_KEY = "racepulse-theme";
+const THEME_LIGHT = "light";
+const THEME_DARK = "dark";
+
+function getStoredTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === THEME_LIGHT || stored === THEME_DARK) {
+      return stored;
+    }
+  } catch (error) {
+  }
+  return null;
+}
+
+function getSystemTheme() {
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return THEME_DARK;
+  }
+  return THEME_LIGHT;
+}
+
+function updateThemeToggleUi(theme) {
+  if (!elements.themeToggle) {
+    return;
+  }
+
+  const isDark = theme === THEME_DARK;
+  elements.themeToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
+  elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
+
+  if (elements.themeToggleLabel) {
+    elements.themeToggleLabel.textContent = isDark ? "Light" : "Dark";
+  }
+}
+
+function applyTheme(theme, persist = true) {
+  const resolvedTheme = theme === THEME_DARK ? THEME_DARK : THEME_LIGHT;
+  document.documentElement.setAttribute("data-theme", resolvedTheme);
+  updateThemeToggleUi(resolvedTheme);
+
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, resolvedTheme);
+    } catch (error) {
+    }
+  }
+}
+
+function initThemeToggle() {
+  const storedTheme = getStoredTheme();
+  const initialTheme = storedTheme || getSystemTheme();
+  applyTheme(initialTheme, false);
+
+  if (!elements.themeToggle) {
+    return;
+  }
+
+  elements.themeToggle.addEventListener("click", () => {
+    const currentTheme = document.documentElement.getAttribute("data-theme") === THEME_DARK
+      ? THEME_DARK
+      : THEME_LIGHT;
+    const nextTheme = currentTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK;
+    applyTheme(nextTheme, true);
+  });
+}
 
 function createFormatters(timeZone) {
   return {
@@ -145,6 +214,8 @@ function init() {
   if (typeof RaceLogic === "undefined") {
     throw new Error("race_logic.js is not loaded.");
   }
+
+  initThemeToggle();
 
   const data = loadData();
   const races = Array.isArray(data.races)

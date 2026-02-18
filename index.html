@@ -3,7 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>MotoGP 2026 Countdown</title>
+    <script>
+      (function () {
+        try {
+          var key = "racepulse-theme";
+          var stored = localStorage.getItem(key);
+          var theme = stored;
+          if (theme !== "light" && theme !== "dark") {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (error) {
+        }
+      })();
+    </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -15,10 +30,26 @@
     </div>
 
     <main class="app">
+      <header class="top-app-bar">
+        <div class="app-brand">
+          <span class="app-mark" aria-hidden="true">GP</span>
+          <div class="app-brand-text">
+            <strong>Race Pulse</strong>
+            <span>Material dashboard</span>
+          </div>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme">
+          <span id="theme-toggle-track" class="theme-toggle-track">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span id="theme-toggle-label">Dark</span>
+        </button>
+      </header>
+
       <header class="hero">
         <div class="hero-left">
           <span class="tag">2026 MotoGP - Lithuania Time</span>
-          <h1>Race Pulse</h1>
+          <h1>Season Dashboard</h1>
         </div>
         <div class="hero-right">
           <div class="today-card">

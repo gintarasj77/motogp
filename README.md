@@ -6,6 +6,8 @@ Small static site that shows the next MotoGP race in Lithuania time, a live coun
 
 Open `index.html` in a browser (no build step).
 
+Use the top-right theme toggle to switch between light and dark Material themes. The preference is saved in `localStorage`.
+
 ## Data
 
 Edit the embedded JSON block in `index.html` (`<script id="race-data" type="application/json">`).
