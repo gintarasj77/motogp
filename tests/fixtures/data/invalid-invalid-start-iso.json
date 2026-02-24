@@ -1,0 +1,12 @@
+{
+  "timezone": "Europe/Vilnius",
+  "races": [
+    {
+      "round": 1,
+      "grandPrix": "Thailand",
+      "startIso": "not-a-date",
+      "location": "Buriram",
+      "circuit": "Chang International Circuit"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check app.js
+        run: node --check app.js
+
+      - name: Race logic tests
+        run: node --test tests/race-logic.test.js
+
+      - name: Data validation tests
+        run: node --test tests/data-validation.test.js

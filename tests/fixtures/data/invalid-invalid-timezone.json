@@ -1,0 +1,12 @@
+{
+  "timezone": "Europe/Vilnius-Invalid",
+  "races": [
+    {
+      "round": 1,
+      "grandPrix": "Thailand",
+      "startIso": "2026-03-01T10:00:00+02:00",
+      "location": "Buriram",
+      "circuit": "Chang International Circuit"
+    }
+  ]
+}

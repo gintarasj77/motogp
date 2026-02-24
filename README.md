@@ -33,3 +33,5 @@ Edit `data.json`.
 Run:
 
 `node --test tests/race-logic.test.js`
+
+`node --test tests/data-validation.test.js`

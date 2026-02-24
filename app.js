@@ -24,105 +24,6 @@ const THEME_DARK = "dark";
 const DATA_FILE = "data.json";
 const DEFAULT_TIMEZONE = "Europe/Vilnius";
 
-function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function validateTimeZone(timeZone) {
-  try {
-    new Intl.DateTimeFormat("en-GB", { timeZone });
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-function readPositiveNumber(value, fallback) {
-  if (Number.isFinite(value) && value > 0) {
-    return value;
-  }
-  return fallback;
-}
-
-function validateRace(rawRace, index) {
-  const path = `races[${index}]`;
-  if (!isPlainObject(rawRace)) {
-    throw new Error(`${path} must be an object.`);
-  }
-
-  if (!Number.isInteger(rawRace.round) || rawRace.round <= 0) {
-    throw new Error(`${path}.round must be a positive integer.`);
-  }
-
-  if (!isNonEmptyString(rawRace.grandPrix)) {
-    throw new Error(`${path}.grandPrix must be a non-empty string.`);
-  }
-
-  if (!isNonEmptyString(rawRace.startIso)) {
-    throw new Error(`${path}.startIso must be a non-empty ISO date-time string.`);
-  }
-
-  const start = new Date(rawRace.startIso);
-  if (Number.isNaN(start.getTime())) {
-    throw new Error(`${path}.startIso is not a valid date-time.`);
-  }
-
-  if (!isNonEmptyString(rawRace.location)) {
-    throw new Error(`${path}.location must be a non-empty string.`);
-  }
-
-  if (!isNonEmptyString(rawRace.circuit)) {
-    throw new Error(`${path}.circuit must be a non-empty string.`);
-  }
-
-  if (rawRace.durationMinutes !== undefined
-    && (!Number.isFinite(rawRace.durationMinutes) || rawRace.durationMinutes <= 0)) {
-    throw new Error(`${path}.durationMinutes must be a positive number when provided.`);
-  }
-}
-
-function validateData(rawData) {
-  if (!isPlainObject(rawData)) {
-    throw new Error(`${DATA_FILE} must contain a JSON object.`);
-  }
-
-  if (!Array.isArray(rawData.races) || rawData.races.length === 0) {
-    throw new Error(`${DATA_FILE}.races must be a non-empty array.`);
-  }
-
-  rawData.races.forEach((race, index) => validateRace(race, index));
-
-  const seenRounds = new Set();
-  rawData.races.forEach((race, index) => {
-    if (seenRounds.has(race.round)) {
-      throw new Error(`races[${index}].round duplicates round ${race.round}.`);
-    }
-    seenRounds.add(race.round);
-  });
-
-  const timezone = isNonEmptyString(rawData.timezone) ? rawData.timezone : DEFAULT_TIMEZONE;
-  if (!validateTimeZone(timezone)) {
-    throw new Error(`${DATA_FILE}.timezone "${timezone}" is not a valid IANA timezone.`);
-  }
-
-  return {
-    season: Number.isInteger(rawData.season) && rawData.season > 0
-      ? rawData.season
-      : new Date().getUTCFullYear(),
-    timezone,
-    timezoneLabel: isNonEmptyString(rawData.timezoneLabel) ? rawData.timezoneLabel : "",
-    defaultRaceDurationMinutes: readPositiveNumber(
-      rawData.defaultRaceDurationMinutes,
-      RaceLogic.DEFAULT_RACE_DURATION_MINUTES
-    ),
-    races: rawData.races
-  };
-}
-
 function getStoredTheme() {
   try {
     const stored = localStorage.getItem(THEME_KEY);
@@ -333,12 +234,19 @@ async function loadData() {
     throw new Error(`${DATA_FILE} is not valid JSON.`);
   }
 
-  return validateData(rawData);
+  return DataValidation.validateData(rawData, {
+    defaultTimezone: DEFAULT_TIMEZONE,
+    defaultRaceDurationMinutes: RaceLogic.DEFAULT_RACE_DURATION_MINUTES,
+    fallbackSeason: new Date().getUTCFullYear()
+  });
 }
 
 async function init() {
   if (typeof RaceLogic === "undefined") {
     throw new Error("race_logic.js is not loaded.");
+  }
+  if (typeof DataValidation === "undefined") {
+    throw new Error("data_validation.js is not loaded.");
   }
 
   initThemeToggle();
