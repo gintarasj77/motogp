@@ -21,6 +21,107 @@ const elements = {
 const THEME_KEY = "racepulse-theme";
 const THEME_LIGHT = "light";
 const THEME_DARK = "dark";
+const DATA_FILE = "data.json";
+const DEFAULT_TIMEZONE = "Europe/Vilnius";
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateTimeZone(timeZone) {
+  try {
+    new Intl.DateTimeFormat("en-GB", { timeZone });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function readPositiveNumber(value, fallback) {
+  if (Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  return fallback;
+}
+
+function validateRace(rawRace, index) {
+  const path = `races[${index}]`;
+  if (!isPlainObject(rawRace)) {
+    throw new Error(`${path} must be an object.`);
+  }
+
+  if (!Number.isInteger(rawRace.round) || rawRace.round <= 0) {
+    throw new Error(`${path}.round must be a positive integer.`);
+  }
+
+  if (!isNonEmptyString(rawRace.grandPrix)) {
+    throw new Error(`${path}.grandPrix must be a non-empty string.`);
+  }
+
+  if (!isNonEmptyString(rawRace.startIso)) {
+    throw new Error(`${path}.startIso must be a non-empty ISO date-time string.`);
+  }
+
+  const start = new Date(rawRace.startIso);
+  if (Number.isNaN(start.getTime())) {
+    throw new Error(`${path}.startIso is not a valid date-time.`);
+  }
+
+  if (!isNonEmptyString(rawRace.location)) {
+    throw new Error(`${path}.location must be a non-empty string.`);
+  }
+
+  if (!isNonEmptyString(rawRace.circuit)) {
+    throw new Error(`${path}.circuit must be a non-empty string.`);
+  }
+
+  if (rawRace.durationMinutes !== undefined
+    && (!Number.isFinite(rawRace.durationMinutes) || rawRace.durationMinutes <= 0)) {
+    throw new Error(`${path}.durationMinutes must be a positive number when provided.`);
+  }
+}
+
+function validateData(rawData) {
+  if (!isPlainObject(rawData)) {
+    throw new Error(`${DATA_FILE} must contain a JSON object.`);
+  }
+
+  if (!Array.isArray(rawData.races) || rawData.races.length === 0) {
+    throw new Error(`${DATA_FILE}.races must be a non-empty array.`);
+  }
+
+  rawData.races.forEach((race, index) => validateRace(race, index));
+
+  const seenRounds = new Set();
+  rawData.races.forEach((race, index) => {
+    if (seenRounds.has(race.round)) {
+      throw new Error(`races[${index}].round duplicates round ${race.round}.`);
+    }
+    seenRounds.add(race.round);
+  });
+
+  const timezone = isNonEmptyString(rawData.timezone) ? rawData.timezone : DEFAULT_TIMEZONE;
+  if (!validateTimeZone(timezone)) {
+    throw new Error(`${DATA_FILE}.timezone "${timezone}" is not a valid IANA timezone.`);
+  }
+
+  return {
+    season: Number.isInteger(rawData.season) && rawData.season > 0
+      ? rawData.season
+      : new Date().getUTCFullYear(),
+    timezone,
+    timezoneLabel: isNonEmptyString(rawData.timezoneLabel) ? rawData.timezoneLabel : "",
+    defaultRaceDurationMinutes: readPositiveNumber(
+      rawData.defaultRaceDurationMinutes,
+      RaceLogic.DEFAULT_RACE_DURATION_MINUTES
+    ),
+    races: rawData.races
+  };
+}
 
 function getStoredTheme() {
   try {
@@ -152,17 +253,29 @@ function buildRaceList(races, now, formatters, defaultRaceDurationMinutes) {
 
 function updateSeasonStats(races, now, defaultRaceDurationMinutes) {
   const completed = RaceLogic.getCompletedCount(races, now, defaultRaceDurationMinutes);
+  const underway = races.filter((race) => RaceLogic.isRaceUnderway(race, now, defaultRaceDurationMinutes)).length;
   const total = races.length;
   const remaining = Math.max(total - completed, 0);
+  const upcoming = Math.max(remaining - underway, 0);
   const progress = total === 0 ? 0 : (completed / total) * 100;
 
   elements.completed.textContent = completed.toString();
   elements.remaining.textContent = remaining.toString();
   elements.total.textContent = total.toString();
   elements.progressBar.style.width = `${progress}%`;
-  elements.seasonNote.textContent = completed === total
-    ? "Season complete."
-    : `${remaining} race${remaining === 1 ? "" : "s"} left after today.`;
+  if (completed === total) {
+    elements.seasonNote.textContent = "Season complete.";
+    return;
+  }
+
+  if (underway > 0) {
+    const underwayLabel = underway === 1 ? "race" : "races";
+    const upcomingLabel = upcoming === 1 ? "race" : "races";
+    elements.seasonNote.textContent = `${underway} ${underwayLabel} in progress, ${upcoming} ${upcomingLabel} after this one.`;
+    return;
+  }
+
+  elements.seasonNote.textContent = `${remaining} race${remaining === 1 ? "" : "s"} left in season.`;
 }
 
 function updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinutes) {
@@ -201,29 +314,42 @@ function updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinu
   return { race, start, end };
 }
 
-function loadData() {
-  const embedded = document.getElementById("race-data");
-  if (!embedded || !embedded.textContent.trim()) {
-    throw new Error("Embedded race data was not found.");
+async function loadData() {
+  let response;
+  try {
+    response = await fetch(DATA_FILE, { cache: "no-store" });
+  } catch (error) {
+    throw new Error(`Failed to fetch ${DATA_FILE}. Serve the project over HTTP instead of file://.`);
   }
 
-  return JSON.parse(embedded.textContent);
+  if (!response.ok) {
+    throw new Error(`Failed to load ${DATA_FILE}: ${response.status} ${response.statusText}`.trim());
+  }
+
+  let rawData;
+  try {
+    rawData = await response.json();
+  } catch (error) {
+    throw new Error(`${DATA_FILE} is not valid JSON.`);
+  }
+
+  return validateData(rawData);
 }
 
-function init() {
+async function init() {
   if (typeof RaceLogic === "undefined") {
     throw new Error("race_logic.js is not loaded.");
   }
 
   initThemeToggle();
 
-  const data = loadData();
+  const data = await loadData();
   const races = Array.isArray(data.races)
     ? data.races.slice().sort((a, b) => new Date(a.startIso) - new Date(b.startIso))
     : [];
   const timeZone = typeof data.timezone === "string" && data.timezone
     ? data.timezone
-    : "Europe/Vilnius";
+    : DEFAULT_TIMEZONE;
   const defaultRaceDurationMinutes = Number.isFinite(data.defaultRaceDurationMinutes)
     && data.defaultRaceDurationMinutes > 0
     ? data.defaultRaceDurationMinutes
@@ -266,10 +392,8 @@ function init() {
   setInterval(refreshCalendarAndStats, 60 * 1000);
 }
 
-try {
-  init();
-} catch (error) {
+init().catch((error) => {
   elements.nextTitle.textContent = "Data load failed";
-  elements.countdown.textContent = "Check embedded race data";
+  elements.countdown.textContent = `Check ${DATA_FILE}`;
   console.error(error);
-}
+});
