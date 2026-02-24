@@ -39,3 +39,11 @@ Run:
 `node --test tests/race-logic.test.js`
 
 `node --test tests/data-validation.test.js`
+
+Browser smoke tests:
+
+`npm install`
+
+`npx playwright install chromium`
+
+`npx playwright test tests/ui/smoke.spec.js --project=chromium`
