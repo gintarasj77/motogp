@@ -65,6 +65,14 @@
     }
   }
 
+  function parseDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    return date;
+  }
+
   function validateData(rawData, options = {}) {
     if (!isPlainObject(rawData)) {
       throw new Error("data.json must contain a JSON object.");
@@ -123,6 +131,12 @@
       options.defaultRaceDurationMinutes,
       DEFAULT_RACE_DURATION_MINUTES
     );
+    if (!isNonEmptyString(rawData.lastUpdated)) {
+      throw new Error("data.json.lastUpdated must be a non-empty ISO date or date-time string.");
+    }
+    if (!parseDate(rawData.lastUpdated)) {
+      throw new Error("data.json.lastUpdated is not a valid date.");
+    }
 
     return {
       season: Number.isInteger(rawData.season) && rawData.season > 0
@@ -130,6 +144,7 @@
         : fallbackSeason,
       timezone,
       timezoneLabel: isNonEmptyString(rawData.timezoneLabel) ? rawData.timezoneLabel : "",
+      lastUpdated: rawData.lastUpdated,
       defaultRaceDurationMinutes: readPositiveNumber(
         rawData.defaultRaceDurationMinutes,
         fallbackDuration
@@ -141,6 +156,7 @@
   const DataValidation = {
     DEFAULT_TIMEZONE,
     isNonEmptyString,
+    parseDate,
     isPlainObject,
     readPositiveNumber,
     validateData,

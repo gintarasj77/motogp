@@ -26,6 +26,7 @@ test("valid fixture passes validation", () => {
   const parsed = DataValidation.validateData(valid, validationOptions);
 
   assert.equal(parsed.timezone, "Europe/Vilnius");
+  assert.equal(parsed.lastUpdated, "2026-02-24");
   assert.equal(parsed.defaultRaceDurationMinutes, 120);
   assert.equal(parsed.races.length, 2);
 });
@@ -36,13 +37,15 @@ test("valid minimal fixture applies defaults", () => {
 
   assert.equal(parsed.season, 2026);
   assert.equal(parsed.timezone, "Europe/Vilnius");
+  assert.equal(parsed.lastUpdated, "2026-02-24");
   assert.equal(parsed.defaultRaceDurationMinutes, 120);
   assert.equal(parsed.races.length, 1);
 });
 
 test("project data.json passes validation", () => {
   const projectData = readJson(path.join(__dirname, "..", "data.json"));
-  assert.doesNotThrow(() => DataValidation.validateData(projectData, validationOptions));
+  const parsed = DataValidation.validateData(projectData, validationOptions);
+  assert.equal(parsed.lastUpdated, "2026-02-24");
 });
 
 const invalidFixtures = [
@@ -73,6 +76,10 @@ const invalidFixtures = [
   {
     name: "invalid-non-increasing-dates.json",
     contains: "strictly increasing startIso order"
+  },
+  {
+    name: "invalid-last-updated.json",
+    contains: "data.json.lastUpdated is not a valid date"
   }
 ];
 

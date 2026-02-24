@@ -2,6 +2,7 @@
   "season": 2026,
   "timezone": "Europe/Vilnius",
   "timezoneLabel": "LT (EET/EEST)",
+  "lastUpdated": "2026-02-24",
   "defaultRaceDurationMinutes": 120,
   "races": [
     {

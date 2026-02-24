@@ -3,6 +3,7 @@ const elements = {
   themeToggleLabel: document.getElementById("theme-toggle-label"),
   seasonTag: document.getElementById("season-tag"),
   seasonHeading: document.getElementById("season-heading"),
+  lastUpdated: document.getElementById("last-updated"),
   calendarTimezone: document.getElementById("calendar-timezone"),
   today: document.getElementById("today"),
   nextTitle: document.getElementById("next-title"),
@@ -29,6 +30,7 @@ const THEME_LIGHT = "light";
 const THEME_DARK = "dark";
 const DATA_FILE = "data.json";
 const DEFAULT_TIMEZONE = "Europe/Vilnius";
+const DEFAULT_PAGE_TITLE = document.title || "MotoGP Countdown";
 let countdownIntervalId = null;
 let refreshIntervalId = null;
 let isReloading = false;
@@ -128,7 +130,20 @@ function getTimezoneLabel(data) {
   return data.timezone;
 }
 
-function applyHeaderLabels(data) {
+function formatLastUpdated(lastUpdatedValue, timeZone) {
+  const parsed = new Date(lastUpdatedValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(parsed);
+}
+
+function applyHeaderLabels(data, timeZone) {
   const seasonLabel = Number.isInteger(data.season) && data.season > 0
     ? data.season.toString()
     : "";
@@ -147,6 +162,19 @@ function applyHeaderLabels(data) {
 
   if (elements.calendarTimezone) {
     elements.calendarTimezone.textContent = `All times in ${timezoneLabel}`;
+  }
+
+  const lastUpdatedLabel = formatLastUpdated(data.lastUpdated, timeZone);
+  if (elements.lastUpdated) {
+    elements.lastUpdated.textContent = lastUpdatedLabel
+      ? `Last updated: ${lastUpdatedLabel}`
+      : "Last updated: -";
+  }
+
+  if (seasonLabel) {
+    document.title = `${seasonLabel} MotoGP Countdown - ${timezoneLabel}`;
+  } else {
+    document.title = `${DEFAULT_PAGE_TITLE} - ${timezoneLabel}`;
   }
 }
 
@@ -338,13 +366,13 @@ async function init() {
   initThemeToggle();
 
   const data = await loadData();
-  applyHeaderLabels(data);
   const races = Array.isArray(data.races)
     ? data.races.slice().sort((a, b) => new Date(a.startIso) - new Date(b.startIso))
     : [];
   const timeZone = typeof data.timezone === "string" && data.timezone
     ? data.timezone
     : DEFAULT_TIMEZONE;
+  applyHeaderLabels(data, timeZone);
   const defaultRaceDurationMinutes = Number.isFinite(data.defaultRaceDurationMinutes)
     && data.defaultRaceDurationMinutes > 0
     ? data.defaultRaceDurationMinutes

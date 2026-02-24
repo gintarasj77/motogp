@@ -21,10 +21,12 @@ Use the top-right theme toggle to switch between light and dark Material themes.
 Edit `data.json`.
 
 - `timezone` controls formatting (defaults to `Europe/Vilnius` if missing).
+- `lastUpdated` controls the freshness label shown in the header (ISO date or date-time string).
 - `defaultRaceDurationMinutes` controls when a race is treated as finished (default `120`).
 - Validation is enforced at runtime:
   - `races` must be a non-empty array.
   - Each race needs valid `round`, `grandPrix`, `startIso`, `location`, and `circuit`.
+  - `lastUpdated` must be a valid ISO date or date-time string.
   - `round` values must be unique.
   - `round` values must be contiguous from `1..N`.
   - Race `startIso` values must be strictly increasing in list order.
