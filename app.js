@@ -1,6 +1,9 @@
 const elements = {
   themeToggle: document.getElementById("theme-toggle"),
   themeToggleLabel: document.getElementById("theme-toggle-label"),
+  seasonTag: document.getElementById("season-tag"),
+  seasonHeading: document.getElementById("season-heading"),
+  calendarTimezone: document.getElementById("calendar-timezone"),
   today: document.getElementById("today"),
   nextTitle: document.getElementById("next-title"),
   nextRound: document.getElementById("next-round"),
@@ -15,7 +18,10 @@ const elements = {
   total: document.getElementById("total"),
   progressBar: document.getElementById("progress-bar"),
   seasonNote: document.getElementById("season-note"),
-  raceList: document.getElementById("race-list")
+  raceList: document.getElementById("race-list"),
+  errorPanel: document.getElementById("error-panel"),
+  errorMessage: document.getElementById("error-message"),
+  errorRetry: document.getElementById("error-retry")
 };
 
 const THEME_KEY = "racepulse-theme";
@@ -23,6 +29,9 @@ const THEME_LIGHT = "light";
 const THEME_DARK = "dark";
 const DATA_FILE = "data.json";
 const DEFAULT_TIMEZONE = "Europe/Vilnius";
+let countdownIntervalId = null;
+let refreshIntervalId = null;
+let isReloading = false;
 
 function getStoredTheme() {
   try {
@@ -74,9 +83,10 @@ function initThemeToggle() {
   const initialTheme = storedTheme || getSystemTheme();
   applyTheme(initialTheme, false);
 
-  if (!elements.themeToggle) {
+  if (!elements.themeToggle || elements.themeToggle.dataset.bound === "true") {
     return;
   }
+  elements.themeToggle.dataset.bound = "true";
 
   elements.themeToggle.addEventListener("click", () => {
     const currentTheme = document.documentElement.getAttribute("data-theme") === THEME_DARK
@@ -109,6 +119,82 @@ function createFormatters(timeZone) {
       year: "numeric"
     })
   };
+}
+
+function getTimezoneLabel(data) {
+  if (typeof data.timezoneLabel === "string" && data.timezoneLabel.trim()) {
+    return data.timezoneLabel.trim();
+  }
+  return data.timezone;
+}
+
+function applyHeaderLabels(data) {
+  const seasonLabel = Number.isInteger(data.season) && data.season > 0
+    ? data.season.toString()
+    : "";
+  const timezoneLabel = getTimezoneLabel(data);
+
+  if (elements.seasonTag) {
+    const seasonPrefix = seasonLabel ? `${seasonLabel} MotoGP` : "MotoGP";
+    elements.seasonTag.textContent = `${seasonPrefix} - ${timezoneLabel}`;
+  }
+
+  if (elements.seasonHeading) {
+    elements.seasonHeading.textContent = seasonLabel
+      ? `${seasonLabel} Season Dashboard`
+      : "Season Dashboard";
+  }
+
+  if (elements.calendarTimezone) {
+    elements.calendarTimezone.textContent = `All times in ${timezoneLabel}`;
+  }
+}
+
+function clearIntervals() {
+  if (countdownIntervalId !== null) {
+    clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
+  }
+  if (refreshIntervalId !== null) {
+    clearInterval(refreshIntervalId);
+    refreshIntervalId = null;
+  }
+}
+
+function setLoadingState() {
+  elements.nextTitle.textContent = "Loading...";
+  elements.nextRound.textContent = "";
+  elements.nextDate.textContent = "-";
+  elements.nextTime.textContent = "-";
+  elements.nextLocation.textContent = "-";
+  elements.nextCircuit.textContent = "-";
+  elements.countdown.textContent = "-";
+  elements.countdownNote.textContent = "";
+}
+
+function hideLoadError() {
+  if (!elements.errorPanel) {
+    return;
+  }
+  elements.errorPanel.classList.remove("visible");
+  elements.errorPanel.hidden = true;
+}
+
+function showLoadError(error) {
+  const message = error instanceof Error
+    ? error.message
+    : "Unknown error while loading season data.";
+
+  if (elements.errorMessage) {
+    elements.errorMessage.textContent = message;
+  }
+  if (elements.errorPanel) {
+    elements.errorPanel.hidden = false;
+    elements.errorPanel.classList.add("visible");
+  }
+
+  elements.nextTitle.textContent = "Data load failed";
+  elements.countdown.textContent = `Check ${DATA_FILE}`;
 }
 
 function appendTextSpan(parent, className, text) {
@@ -252,6 +338,7 @@ async function init() {
   initThemeToggle();
 
   const data = await loadData();
+  applyHeaderLabels(data);
   const races = Array.isArray(data.races)
     ? data.races.slice().sort((a, b) => new Date(a.startIso) - new Date(b.startIso))
     : [];
@@ -296,12 +383,41 @@ async function init() {
 
   refreshCalendarAndStats();
   updateCountdown();
-  setInterval(updateCountdown, 1000);
-  setInterval(refreshCalendarAndStats, 60 * 1000);
+  countdownIntervalId = setInterval(updateCountdown, 1000);
+  refreshIntervalId = setInterval(refreshCalendarAndStats, 60 * 1000);
 }
 
-init().catch((error) => {
-  elements.nextTitle.textContent = "Data load failed";
-  elements.countdown.textContent = `Check ${DATA_FILE}`;
-  console.error(error);
-});
+async function reloadApp() {
+  if (isReloading) {
+    return;
+  }
+
+  isReloading = true;
+  if (elements.errorRetry) {
+    elements.errorRetry.disabled = true;
+  }
+
+  clearIntervals();
+  hideLoadError();
+  setLoadingState();
+
+  try {
+    await init();
+  } catch (error) {
+    showLoadError(error);
+    console.error(error);
+  } finally {
+    if (elements.errorRetry) {
+      elements.errorRetry.disabled = false;
+    }
+    isReloading = false;
+  }
+}
+
+if (elements.errorRetry) {
+  elements.errorRetry.addEventListener("click", () => {
+    reloadApp();
+  });
+}
+
+reloadApp();

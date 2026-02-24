@@ -48,8 +48,8 @@
 
       <header class="hero">
         <div class="hero-left">
-          <span class="tag">2026 MotoGP - Lithuania Time</span>
-          <h1>Season Dashboard</h1>
+          <span id="season-tag" class="tag">MotoGP Season - Local Time</span>
+          <h1 id="season-heading">Season Dashboard</h1>
         </div>
         <div class="hero-right">
           <div class="today-card">
@@ -69,6 +69,14 @@
           </div>
         </div>
       </header>
+
+      <section id="error-panel" class="error-panel" role="alert" hidden>
+        <div class="error-copy">
+          <h2>Unable to load season data</h2>
+          <p id="error-message" class="note">Please check your calendar data and try again.</p>
+        </div>
+        <button id="error-retry" class="error-retry" type="button">Retry</button>
+      </section>
 
       <section class="spotlight">
         <article class="panel next">
@@ -127,7 +135,7 @@
       <section class="list">
         <div class="list-header">
           <h2>Full Calendar</h2>
-          <span class="pill">All times in LT</span>
+          <span id="calendar-timezone" class="pill">All times local</span>
         </div>
         <div id="race-list" class="race-list"></div>
       </section>
