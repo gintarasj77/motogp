@@ -84,6 +84,30 @@
       seenRounds.add(race.round);
     });
 
+    const sortedRounds = rawData.races
+      .map((race) => race.round)
+      .slice()
+      .sort((a, b) => a - b);
+    sortedRounds.forEach((round, index) => {
+      const expectedRound = index + 1;
+      if (round !== expectedRound) {
+        throw new Error(
+          `races.round must be contiguous from 1..${rawData.races.length}; expected ${expectedRound}, found ${round}.`
+        );
+      }
+    });
+
+    let previousStartMs = null;
+    rawData.races.forEach((race, index) => {
+      const startMs = new Date(race.startIso).getTime();
+      if (previousStartMs !== null && startMs <= previousStartMs) {
+        throw new Error(
+          `races must be in strictly increasing startIso order; check races[${index - 1}] and races[${index}].`
+        );
+      }
+      previousStartMs = startMs;
+    });
+
     const defaultTimezone = isNonEmptyString(options.defaultTimezone)
       ? options.defaultTimezone
       : DEFAULT_TIMEZONE;

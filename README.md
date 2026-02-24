@@ -26,6 +26,8 @@ Edit `data.json`.
   - `races` must be a non-empty array.
   - Each race needs valid `round`, `grandPrix`, `startIso`, `location`, and `circuit`.
   - `round` values must be unique.
+  - `round` values must be contiguous from `1..N`.
+  - Race `startIso` values must be strictly increasing in list order.
   - `timezone` must be a valid IANA timezone.
 
 ## Tests

@@ -65,6 +65,14 @@ const invalidFixtures = [
   {
     name: "invalid-empty-races.json",
     contains: "data.json.races must be a non-empty array"
+  },
+  {
+    name: "invalid-non-contiguous-rounds.json",
+    contains: "races.round must be contiguous"
+  },
+  {
+    name: "invalid-non-increasing-dates.json",
+    contains: "strictly increasing startIso order"
   }
 ];
 
