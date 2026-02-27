@@ -2,6 +2,10 @@
 
 Small static site that shows the next MotoGP race in Lithuania time, a live countdown, season progress, and the full 2026 calendar.
 
+## Live App
+
+https://motogp-asce.onrender.com/
+
 ## How to run
 
 Serve the folder with a local static server, then open it in a browser.

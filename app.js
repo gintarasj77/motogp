@@ -190,6 +190,7 @@ function clearIntervals() {
 }
 
 function setLoadingState() {
+  elements.today.textContent = "-";
   elements.nextTitle.textContent = "Loading...";
   elements.nextRound.textContent = "";
   elements.nextDate.textContent = "-";
@@ -198,6 +199,13 @@ function setLoadingState() {
   elements.nextCircuit.textContent = "-";
   elements.countdown.textContent = "-";
   elements.countdownNote.textContent = "";
+  elements.completed.textContent = "0";
+  elements.remaining.textContent = "0";
+  elements.total.textContent = "0";
+  elements.progressBar.style.width = "0%";
+  elements.seasonNote.textContent = "";
+  elements.calendarTimezone.textContent = "All times local";
+  clearChildren(elements.raceList);
 }
 
 function hideLoadError() {

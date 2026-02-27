@@ -63,7 +63,11 @@ const invalidFixtures = [
   },
   {
     name: "invalid-invalid-start-iso.json",
-    contains: ".startIso is not a valid date-time"
+    contains: ".startIso is not a valid ISO date-time with timezone"
+  },
+  {
+    name: "invalid-start-missing-timezone.json",
+    contains: ".startIso is not a valid ISO date-time with timezone"
   },
   {
     name: "invalid-empty-races.json",
@@ -79,7 +83,11 @@ const invalidFixtures = [
   },
   {
     name: "invalid-last-updated.json",
-    contains: "data.json.lastUpdated is not a valid date"
+    contains: "data.json.lastUpdated must be a valid ISO date or date-time string"
+  },
+  {
+    name: "invalid-last-updated-overflow-date.json",
+    contains: "data.json.lastUpdated must be a valid ISO date or date-time string"
   }
 ];
 

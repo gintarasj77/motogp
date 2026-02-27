@@ -36,8 +36,9 @@ const server = http.createServer(async (req, res) => {
 
   const relativePath = sanitizePath(req.url);
   const absolutePath = path.resolve(rootDir, relativePath);
+  const relativeToRoot = path.relative(rootDir, absolutePath);
 
-  if (!absolutePath.startsWith(rootDir)) {
+  if (relativeToRoot.startsWith("..") || path.isAbsolute(relativeToRoot)) {
     res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
     res.end("Forbidden");
     return;

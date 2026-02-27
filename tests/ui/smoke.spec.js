@@ -49,6 +49,10 @@ test("shows error panel when data.json is invalid", async ({ page }) => {
 
   await expect(page.locator("#error-panel")).toBeVisible();
   await expect(page.locator("#error-message")).toContainText("data.json.races must be a non-empty array");
+  await expect(page.locator(".race-item")).toHaveCount(0);
+  await expect(page.locator("#completed")).toHaveText("0");
+  await expect(page.locator("#remaining")).toHaveText("0");
+  await expect(page.locator("#total")).toHaveText("0");
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
 });
 
@@ -75,4 +79,34 @@ test("retry recovers after data becomes valid", async ({ page }) => {
   await expect(page.getByRole("heading", { name: expectedHeading })).toBeVisible();
   await expect(page.locator(".race-item").first()).toBeVisible();
   await expect.poll(() => requestCount).toBeGreaterThanOrEqual(2);
+});
+
+test("manual reload clears stale stats when a later fetch is invalid", async ({ page }) => {
+  let requestCount = 0;
+  await page.route("**/data.json", async (route) => {
+    requestCount += 1;
+    const body = requestCount === 1 ? validDataText : invalidDataPayload();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.locator(".race-item").first()).toBeVisible();
+
+  await page.evaluate(() => {
+    const retry = document.getElementById("error-retry");
+    if (retry) {
+      retry.click();
+    }
+  });
+
+  await expect.poll(() => requestCount).toBeGreaterThanOrEqual(2);
+  await expect(page.locator("#error-panel")).toBeVisible();
+  await expect(page.locator(".race-item")).toHaveCount(0);
+  await expect(page.locator("#completed")).toHaveText("0");
+  await expect(page.locator("#remaining")).toHaveText("0");
+  await expect(page.locator("#total")).toHaveText("0");
 });

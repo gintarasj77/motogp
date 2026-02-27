@@ -3,6 +3,9 @@
 
   const DEFAULT_TIMEZONE = "Europe/Vilnius";
   const DEFAULT_RACE_DURATION_MINUTES = 120;
+  const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const ISO_DATE_TIME_RE =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?(Z|[+\-]\d{2}:\d{2})$/;
 
   function isPlainObject(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -28,6 +31,69 @@
     return fallback;
   }
 
+  function parseDigits(value) {
+    return Number.parseInt(value, 10);
+  }
+
+  function isValidCalendarDate(year, month, day) {
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+      return false;
+    }
+    if (month < 1 || month > 12 || day < 1) {
+      return false;
+    }
+    const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return day <= maxDay;
+  }
+
+  function isValidIsoDateString(value) {
+    const match = ISO_DATE_RE.exec(value);
+    if (!match) {
+      return false;
+    }
+    const year = parseDigits(match[1]);
+    const month = parseDigits(match[2]);
+    const day = parseDigits(match[3]);
+    return isValidCalendarDate(year, month, day);
+  }
+
+  function isValidIsoDateTimeString(value) {
+    const match = ISO_DATE_TIME_RE.exec(value);
+    if (!match) {
+      return false;
+    }
+
+    const year = parseDigits(match[1]);
+    const month = parseDigits(match[2]);
+    const day = parseDigits(match[3]);
+    const hour = parseDigits(match[4]);
+    const minute = parseDigits(match[5]);
+    const second = match[6] === undefined ? 0 : parseDigits(match[6]);
+    const offset = match[8];
+
+    if (!isValidCalendarDate(year, month, day)) {
+      return false;
+    }
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
+      return false;
+    }
+
+    if (offset !== "Z") {
+      const [offsetHourText, offsetMinuteText] = offset.slice(1).split(":");
+      const offsetHour = parseDigits(offsetHourText);
+      const offsetMinute = parseDigits(offsetMinuteText);
+      if (offsetHour < 0 || offsetHour > 23 || offsetMinute < 0 || offsetMinute > 59) {
+        return false;
+      }
+    }
+
+    return !Number.isNaN(new Date(value).getTime());
+  }
+
+  function isValidIsoDateOrDateTimeString(value) {
+    return isValidIsoDateString(value) || isValidIsoDateTimeString(value);
+  }
+
   function validateRace(rawRace, index) {
     const path = `races[${index}]`;
     if (!isPlainObject(rawRace)) {
@@ -46,9 +112,8 @@
       throw new Error(`${path}.startIso must be a non-empty ISO date-time string.`);
     }
 
-    const start = new Date(rawRace.startIso);
-    if (Number.isNaN(start.getTime())) {
-      throw new Error(`${path}.startIso is not a valid date-time.`);
+    if (!isValidIsoDateTimeString(rawRace.startIso)) {
+      throw new Error(`${path}.startIso is not a valid ISO date-time with timezone.`);
     }
 
     if (!isNonEmptyString(rawRace.location)) {
@@ -134,8 +199,8 @@
     if (!isNonEmptyString(rawData.lastUpdated)) {
       throw new Error("data.json.lastUpdated must be a non-empty ISO date or date-time string.");
     }
-    if (!parseDate(rawData.lastUpdated)) {
-      throw new Error("data.json.lastUpdated is not a valid date.");
+    if (!isValidIsoDateOrDateTimeString(rawData.lastUpdated)) {
+      throw new Error("data.json.lastUpdated must be a valid ISO date or date-time string.");
     }
 
     return {
@@ -158,6 +223,9 @@
     isNonEmptyString,
     parseDate,
     isPlainObject,
+    isValidIsoDateOrDateTimeString,
+    isValidIsoDateString,
+    isValidIsoDateTimeString,
     readPositiveNumber,
     validateData,
     validateRace,
