@@ -1,6 +1,6 @@
 # MotoGP 2026 Countdown
 
-Small static site that shows the next MotoGP race in Lithuania time, a live countdown, season progress, and the full 2026 calendar.
+Small static site that shows the next MotoGP race in Lithuania time, a live countdown, season progress, and the remaining 2026 rounds.
 
 ## Live App
 
@@ -19,6 +19,7 @@ Then open:
 `http://localhost:8000`
 
 Use the top-right theme toggle to switch between light and dark Material themes. The preference is saved in `localStorage`.
+Finished rounds are hidden from the calendar automatically.
 
 ## Data
 
@@ -46,7 +47,7 @@ Run:
 
 Browser smoke tests:
 
-`npm install`
+`npm ci`
 
 `npx playwright install chromium`
 

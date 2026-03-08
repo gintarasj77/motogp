@@ -5,24 +5,63 @@ const path = require("node:path");
 const validDataPath = path.resolve(__dirname, "..", "..", "data.json");
 const validDataText = fs.readFileSync(validDataPath, "utf8");
 const validData = JSON.parse(validDataText);
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const expectedHeading = Number.isInteger(validData.season) && validData.season > 0
   ? `${validData.season} Season Dashboard`
   : "Season Dashboard";
 const expectedTimezoneLabel = typeof validData.timezoneLabel === "string" && validData.timezoneLabel.trim()
   ? validData.timezoneLabel.trim()
   : validData.timezone;
-const expectedLastUpdated = new Intl.DateTimeFormat("en-GB", {
-  timeZone: validData.timezone,
-  day: "2-digit",
-  month: "short",
-  year: "numeric"
-}).format(new Date(validData.lastUpdated));
+const expectedLastUpdated = getExpectedLastUpdated(validData);
+const DEFAULT_SEASON_TAG = "MotoGP Season - Local Time";
+const DEFAULT_SEASON_HEADING = "Season Dashboard";
+const DEFAULT_LAST_UPDATED = "Last updated: -";
+const DEFAULT_CALENDAR_TIMEZONE = "All times local";
 
 function invalidDataPayload() {
   return JSON.stringify({
     timezone: "Europe/Vilnius",
     lastUpdated: "2026-02-24",
     races: []
+  });
+}
+
+function formatDateOnly(value) {
+  const match = DATE_ONLY_RE.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const monthLabel = MONTHS_SHORT[Number.parseInt(match[2], 10) - 1];
+  if (!monthLabel) {
+    return null;
+  }
+
+  return `${match[3]} ${monthLabel} ${match[1]}`;
+}
+
+function getExpectedLastUpdated(data) {
+  const dateOnlyLabel = formatDateOnly(data.lastUpdated);
+  if (dateOnlyLabel) {
+    return dateOnlyLabel;
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: data.timezone,
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(data.lastUpdated));
+}
+
+async function routeData(page, data) {
+  await page.route("**/data.json", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(data)
+    });
   });
 }
 
@@ -34,6 +73,34 @@ test("renders dashboard from valid data", async ({ page }) => {
   await expect(page.getByText(`All times in ${expectedTimezoneLabel}`)).toBeVisible();
   await expect(page.locator("#error-panel")).toBeHidden();
   await expect(page.locator(".race-item").first()).toBeVisible();
+});
+
+test("theme toggle persists across reloads", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
+});
+
+test("renders date-only lastUpdated without shifting across timezones", async ({ page }) => {
+  const timezoneShiftData = {
+    ...validData,
+    timezone: "America/New_York",
+    timezoneLabel: "ET",
+    lastUpdated: "2026-02-24"
+  };
+
+  await routeData(page, timezoneShiftData);
+  await page.goto("/");
+
+  await expect(page.getByText(`Last updated: ${getExpectedLastUpdated(timezoneShiftData)}`)).toBeVisible();
+  await expect(page.getByText("All times in ET")).toBeVisible();
 });
 
 test("shows error panel when data.json is invalid", async ({ page }) => {
@@ -53,6 +120,10 @@ test("shows error panel when data.json is invalid", async ({ page }) => {
   await expect(page.locator("#completed")).toHaveText("0");
   await expect(page.locator("#remaining")).toHaveText("0");
   await expect(page.locator("#total")).toHaveText("0");
+  await expect(page.locator("#season-heading")).toHaveText(DEFAULT_SEASON_HEADING);
+  await expect(page.locator("#season-tag")).toHaveText(DEFAULT_SEASON_TAG);
+  await expect(page.locator("#last-updated")).toHaveText(DEFAULT_LAST_UPDATED);
+  await expect(page.locator("#calendar-timezone")).toHaveText(DEFAULT_CALENDAR_TIMEZONE);
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
 });
 
@@ -109,4 +180,118 @@ test("manual reload clears stale stats when a later fetch is invalid", async ({ 
   await expect(page.locator("#completed")).toHaveText("0");
   await expect(page.locator("#remaining")).toHaveText("0");
   await expect(page.locator("#total")).toHaveText("0");
+  await expect(page.locator("#season-heading")).toHaveText(DEFAULT_SEASON_HEADING);
+  await expect(page.locator("#season-tag")).toHaveText(DEFAULT_SEASON_TAG);
+  await expect(page.locator("#last-updated")).toHaveText(DEFAULT_LAST_UPDATED);
+  await expect(page.locator("#calendar-timezone")).toHaveText(DEFAULT_CALENDAR_TIMEZONE);
+});
+
+test("hides finished rounds from the calendar while keeping current and future rounds", async ({ page }) => {
+  const filteredCalendarData = {
+    season: 2026,
+    timezone: "Europe/Vilnius",
+    timezoneLabel: "LT (EET/EEST)",
+    lastUpdated: "2026-02-24",
+    defaultRaceDurationMinutes: 120,
+    races: [
+      {
+        round: 1,
+        grandPrix: "Past GP",
+        startIso: "2026-03-01T07:00:00+02:00",
+        location: "Buriram",
+        circuit: "Past Circuit"
+      },
+      {
+        round: 2,
+        grandPrix: "Live GP",
+        startIso: "2026-03-01T10:00:00+02:00",
+        location: "Austin",
+        circuit: "Live Circuit"
+      },
+      {
+        round: 3,
+        grandPrix: "Future GP",
+        startIso: "2026-03-01T14:00:00+02:00",
+        location: "Lusail",
+        circuit: "Future Circuit"
+      }
+    ]
+  };
+
+  await page.clock.install({ time: new Date("2026-03-01T10:30:00+02:00") });
+  await routeData(page, filteredCalendarData);
+  await page.goto("/");
+
+  await expect(page.locator(".race-item")).toHaveCount(2);
+  await expect(page.locator(".race-item .race-name")).toHaveText(["Live GP", "Future GP"]);
+  await expect(page.locator(".race-item.underway")).toHaveCount(1);
+  await expect(page.locator("#calendar-empty")).toBeHidden();
+});
+
+test("switches the next race card to live state as soon as the race starts", async ({ page }) => {
+  const transitionData = {
+    season: 2026,
+    timezone: "Europe/Vilnius",
+    timezoneLabel: "LT (EET/EEST)",
+    lastUpdated: "2026-02-24",
+    defaultRaceDurationMinutes: 120,
+    races: [
+      {
+        round: 1,
+        grandPrix: "Timing GP",
+        startIso: "2026-03-01T10:00:00+02:00",
+        location: "Buriram",
+        circuit: "Timing Circuit"
+      },
+      {
+        round: 2,
+        grandPrix: "Next GP",
+        startIso: "2026-03-01T14:00:00+02:00",
+        location: "Austin",
+        circuit: "Next Circuit"
+      }
+    ]
+  };
+
+  await page.clock.install({ time: new Date("2026-03-01T09:59:58+02:00") });
+  await routeData(page, transitionData);
+  await page.goto("/");
+
+  await expect(page.locator("#next-title")).toHaveText("Timing GP");
+  await expect(page.locator("#countdown-note")).toHaveText("Countdown to the MotoGP Grand Prix start.");
+
+  await page.clock.runFor(3000);
+
+  await expect(page.locator("#next-title")).toHaveText("Timing GP (Live)");
+  await expect(page.locator("#countdown")).toHaveText("Race underway");
+  await expect(page.locator("#countdown-note")).toHaveText("Race is underway. Countdown switches after finish.");
+});
+
+test("shows season-complete state and an empty calendar after the last round finishes", async ({ page }) => {
+  const completedSeasonData = {
+    season: 2026,
+    timezone: "Europe/Vilnius",
+    timezoneLabel: "LT (EET/EEST)",
+    lastUpdated: "2026-02-24",
+    defaultRaceDurationMinutes: 120,
+    races: [
+      {
+        round: 1,
+        grandPrix: "Final GP",
+        startIso: "2026-03-01T08:00:00+02:00",
+        location: "Valencia",
+        circuit: "Final Circuit"
+      }
+    ]
+  };
+
+  await page.clock.install({ time: new Date("2026-03-01T11:30:00+02:00") });
+  await routeData(page, completedSeasonData);
+  await page.goto("/");
+
+  await expect(page.locator("#next-title")).toHaveText("Season Complete");
+  await expect(page.locator("#countdown")).toHaveText("All races finished");
+  await expect(page.locator("#season-note")).toHaveText("Season complete.");
+  await expect(page.locator(".race-item")).toHaveCount(0);
+  await expect(page.locator("#calendar-empty")).toBeVisible();
 });

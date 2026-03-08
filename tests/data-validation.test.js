@@ -45,7 +45,8 @@ test("valid minimal fixture applies defaults", () => {
 test("project data.json passes validation", () => {
   const projectData = readJson(path.join(__dirname, "..", "data.json"));
   const parsed = DataValidation.validateData(projectData, validationOptions);
-  assert.equal(parsed.lastUpdated, "2026-02-24");
+  assert.equal(parsed.lastUpdated, projectData.lastUpdated);
+  assert.equal(parsed.races.length, projectData.races.length);
 });
 
 const invalidFixtures = [

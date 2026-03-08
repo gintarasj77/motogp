@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Static MotoGP countdown dashboard with data validation and browser smoke tests.",
   "scripts": {
-    "check:syntax": "node --check app.js && node --check data_validation.js",
+    "check:syntax": "node --check app.js && node --check race_logic.js && node --check data_validation.js",
     "test:race-logic": "node --test tests/race-logic.test.js",
     "test:data": "node --test tests/data-validation.test.js",
     "test:ui": "playwright test",

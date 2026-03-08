@@ -349,10 +349,11 @@ h2 {
 .support-links {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .support-link {
-  width: 42px;
+  min-width: 78px;
   height: 42px;
   display: grid;
   place-items: center;
@@ -360,6 +361,9 @@ h2 {
   background: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
   box-shadow: var(--md-elevation-1);
+  padding: 0 12px;
+  color: var(--md-on-surface);
+  text-decoration: none;
   transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
@@ -374,11 +378,10 @@ h2 {
   outline-offset: 2px;
 }
 
-.support-logo {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  display: block;
+.support-link-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .spotlight {
@@ -594,6 +597,11 @@ h2 {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.calendar-empty {
+  color: var(--md-on-surface-variant);
+  font-size: 0.92rem;
 }
 
 .race-list {

@@ -19,6 +19,7 @@ const elements = {
   total: document.getElementById("total"),
   progressBar: document.getElementById("progress-bar"),
   seasonNote: document.getElementById("season-note"),
+  calendarEmpty: document.getElementById("calendar-empty"),
   raceList: document.getElementById("race-list"),
   errorPanel: document.getElementById("error-panel"),
   errorMessage: document.getElementById("error-message"),
@@ -31,6 +32,12 @@ const THEME_DARK = "dark";
 const DATA_FILE = "data.json";
 const DEFAULT_TIMEZONE = "Europe/Vilnius";
 const DEFAULT_PAGE_TITLE = document.title || "MotoGP Countdown";
+const DEFAULT_SEASON_TAG = "MotoGP Season - Local Time";
+const DEFAULT_SEASON_HEADING = "Season Dashboard";
+const DEFAULT_LAST_UPDATED = "Last updated: -";
+const DEFAULT_CALENDAR_TIMEZONE = "All times local";
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let countdownIntervalId = null;
 let refreshIntervalId = null;
 let isReloading = false;
@@ -130,7 +137,27 @@ function getTimezoneLabel(data) {
   return data.timezone;
 }
 
+function formatDateOnlyLabel(value) {
+  const match = DATE_ONLY_RE.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const monthIndex = Number.parseInt(match[2], 10) - 1;
+  const monthLabel = MONTH_NAMES_SHORT[monthIndex];
+  if (!monthLabel) {
+    return null;
+  }
+
+  return `${match[3]} ${monthLabel} ${match[1]}`;
+}
+
 function formatLastUpdated(lastUpdatedValue, timeZone) {
+  const dateOnlyLabel = formatDateOnlyLabel(lastUpdatedValue);
+  if (dateOnlyLabel) {
+    return dateOnlyLabel;
+  }
+
   const parsed = new Date(lastUpdatedValue);
   if (Number.isNaN(parsed.getTime())) {
     return null;
@@ -141,6 +168,26 @@ function formatLastUpdated(lastUpdatedValue, timeZone) {
     month: "short",
     year: "numeric"
   }).format(parsed);
+}
+
+function resetHeaderLabels() {
+  if (elements.seasonTag) {
+    elements.seasonTag.textContent = DEFAULT_SEASON_TAG;
+  }
+
+  if (elements.seasonHeading) {
+    elements.seasonHeading.textContent = DEFAULT_SEASON_HEADING;
+  }
+
+  if (elements.lastUpdated) {
+    elements.lastUpdated.textContent = DEFAULT_LAST_UPDATED;
+  }
+
+  if (elements.calendarTimezone) {
+    elements.calendarTimezone.textContent = DEFAULT_CALENDAR_TIMEZONE;
+  }
+
+  document.title = DEFAULT_PAGE_TITLE;
 }
 
 function applyHeaderLabels(data, timeZone) {
@@ -190,6 +237,7 @@ function clearIntervals() {
 }
 
 function setLoadingState() {
+  resetHeaderLabels();
   elements.today.textContent = "-";
   elements.nextTitle.textContent = "Loading...";
   elements.nextRound.textContent = "";
@@ -204,7 +252,9 @@ function setLoadingState() {
   elements.total.textContent = "0";
   elements.progressBar.style.width = "0%";
   elements.seasonNote.textContent = "";
-  elements.calendarTimezone.textContent = "All times local";
+  if (elements.calendarEmpty) {
+    elements.calendarEmpty.hidden = true;
+  }
   clearChildren(elements.raceList);
 }
 
@@ -247,9 +297,20 @@ function clearChildren(node) {
 }
 
 function buildRaceList(races, now, formatters, defaultRaceDurationMinutes) {
-  clearChildren(elements.raceList);
+  const visibleRaces = races.filter(
+    (race) => !RaceLogic.isRaceFinished(race, now, defaultRaceDurationMinutes)
+  );
 
-  races.forEach((race, index) => {
+  clearChildren(elements.raceList);
+  if (elements.calendarEmpty) {
+    elements.calendarEmpty.hidden = visibleRaces.length > 0;
+  }
+
+  if (visibleRaces.length === 0) {
+    return;
+  }
+
+  visibleRaces.forEach((race, index) => {
     const start = RaceLogic.getRaceStart(race);
     const isFinished = RaceLogic.isRaceFinished(race, now, defaultRaceDurationMinutes);
     const isUnderway = RaceLogic.isRaceUnderway(race, now, defaultRaceDurationMinutes);
@@ -334,7 +395,7 @@ function updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinu
     elements.countdown.textContent = "Race underway";
   }
 
-  return { race, start, end };
+  return { race, start, end, isUnderway };
 }
 
 async function loadData() {
@@ -390,6 +451,7 @@ async function init() {
   let trackedRace = null;
   let trackedStart = null;
   let trackedEnd = null;
+  let trackedIsUnderway = false;
 
   const refreshCalendarAndStats = () => {
     const now = new Date();
@@ -398,6 +460,7 @@ async function init() {
     trackedRace = eventInfo ? eventInfo.race : null;
     trackedStart = eventInfo ? eventInfo.start : null;
     trackedEnd = eventInfo ? eventInfo.end : null;
+    trackedIsUnderway = Boolean(eventInfo && eventInfo.isUnderway);
 
     elements.today.textContent = `Today: ${formatters.today.format(now)}`;
     buildRaceList(races, now, formatters, defaultRaceDurationMinutes);
@@ -410,10 +473,16 @@ async function init() {
     }
 
     const now = new Date();
-    if (now >= trackedEnd) {
+    if (now >= trackedEnd || (!trackedIsUnderway && now >= trackedStart)) {
       refreshCalendarAndStats();
       return;
     }
+
+    if (trackedIsUnderway) {
+      elements.countdown.textContent = "Race underway";
+      return;
+    }
+
     elements.countdown.textContent = RaceLogic.formatCountdown(trackedStart - now);
   };
 
