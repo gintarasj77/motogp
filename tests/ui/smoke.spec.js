@@ -114,6 +114,38 @@ test("shows error panel when data.json is invalid", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
 });
 
+test("shows a load error when data.json returns a non-ok response", async ({ page }) => {
+  await page.route("**/data.json", async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: "text/plain; charset=utf-8",
+      body: "Not Found"
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.locator("#error-panel")).toBeVisible();
+  await expect(page.locator("#error-message")).toContainText("Failed to load data.json: 404");
+  await expect(page.locator("#status-message")).toHaveText("Unable to load season data.");
+  await expect(page.locator(".race-item")).toHaveCount(0);
+});
+
+test("shows a load error when fetching data.json fails", async ({ page }) => {
+  await page.route("**/data.json", async (route) => {
+    await route.abort("failed");
+  });
+
+  await page.goto("/");
+
+  await expect(page.locator("#error-panel")).toBeVisible();
+  await expect(page.locator("#error-message")).toContainText(
+    "Failed to fetch data.json. Serve the project over HTTP instead of file://."
+  );
+  await expect(page.locator("#status-message")).toHaveText("Unable to load season data.");
+  await expect(page.locator(".race-item")).toHaveCount(0);
+});
+
 test("retry recovers after data becomes valid", async ({ page }) => {
   let requestCount = 0;
   await page.route("**/data.json", async (route) => {

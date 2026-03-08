@@ -29,8 +29,8 @@ jobs:
       - name: Data validation tests
         run: npm run test:data
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Browser smoke tests
-        run: npm run test:smoke -- --project=chromium
+        run: npm run test:smoke

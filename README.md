@@ -49,6 +49,6 @@ Browser smoke tests:
 
 `npm ci`
 
-`npx playwright install chromium`
+`npx playwright install chromium firefox webkit`
 
-`npx playwright test tests/ui/smoke.spec.js --project=chromium`
+`npx playwright test tests/ui/smoke.spec.js`

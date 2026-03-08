@@ -289,16 +289,12 @@ function buildRaceList(races, now, formatters, defaultRaceDurationMinutes) {
 
   visibleRaces.forEach((race, index) => {
     const start = RaceLogic.getRaceStart(race);
-    const isFinished = RaceLogic.isRaceFinished(race, now, defaultRaceDurationMinutes);
     const isUnderway = RaceLogic.isRaceUnderway(race, now, defaultRaceDurationMinutes);
 
     const card = document.createElement("div");
     card.className = "race-item";
     card.style.animationDelay = `${index * 0.04}s`;
 
-    if (isFinished) {
-      card.classList.add("finished");
-    }
     if (isUnderway) {
       card.classList.add("underway");
     }

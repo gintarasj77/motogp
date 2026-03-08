@@ -639,10 +639,6 @@ h2 {
   box-shadow: var(--md-elevation-2);
 }
 
-.race-item.finished {
-  opacity: 0.62;
-}
-
 .race-item.underway {
   border-color: var(--md-primary-outline-strong);
   box-shadow: 0 0 0 1px var(--md-primary-ring), var(--md-elevation-2);
