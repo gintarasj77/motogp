@@ -30,6 +30,8 @@
     </div>
 
     <main class="app">
+      <p id="status-message" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+
       <header class="top-app-bar">
         <div class="app-brand">
           <span class="app-mark" aria-hidden="true">GP</span>
@@ -50,7 +52,6 @@
         <div class="hero-left">
           <span id="season-tag" class="tag">MotoGP Season - Local Time</span>
           <h1 id="season-heading">Season Dashboard</h1>
-          <p id="last-updated" class="hero-meta">Last updated: -</p>
         </div>
         <div class="hero-right">
           <div class="today-card">
@@ -135,10 +136,10 @@
 
       <section class="list">
         <div class="list-header">
-          <h2>Upcoming Rounds</h2>
+          <h2>Remaining Rounds</h2>
           <span id="calendar-timezone" class="pill">All times local</span>
         </div>
-        <p id="calendar-empty" class="calendar-empty" hidden>No upcoming rounds.</p>
+        <p id="calendar-empty" class="calendar-empty" hidden>No remaining rounds.</p>
         <div id="race-list" class="race-list"></div>
       </section>
     </main>

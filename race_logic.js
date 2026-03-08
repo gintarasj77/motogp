@@ -2,13 +2,23 @@
   "use strict";
 
   const DEFAULT_RACE_DURATION_MINUTES = 120;
+  const MAX_RACE_DURATION_MINUTES = 360;
   const MS_PER_MINUTE = 60 * 1000;
 
+  function isValidRaceDurationMinutes(value) {
+    return Number.isFinite(value) && value > 0 && value <= MAX_RACE_DURATION_MINUTES;
+  }
+
   function getRaceDurationMinutes(race, fallbackMinutes = DEFAULT_RACE_DURATION_MINUTES) {
-    if (race && Number.isFinite(race.durationMinutes) && race.durationMinutes > 0) {
+    if (race && isValidRaceDurationMinutes(race.durationMinutes)) {
       return race.durationMinutes;
     }
-    return fallbackMinutes;
+
+    if (isValidRaceDurationMinutes(fallbackMinutes)) {
+      return fallbackMinutes;
+    }
+
+    return DEFAULT_RACE_DURATION_MINUTES;
   }
 
   function getRaceStart(race) {
@@ -54,12 +64,14 @@
 
   const RaceLogic = {
     DEFAULT_RACE_DURATION_MINUTES,
+    MAX_RACE_DURATION_MINUTES,
     formatCountdown,
     getCompletedCount,
     getCurrentOrNextRace,
     getRaceDurationMinutes,
     getRaceEnd,
     getRaceStart,
+    isValidRaceDurationMinutes,
     isRaceFinished,
     isRaceUnderway
   };

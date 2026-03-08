@@ -3,9 +3,8 @@
 
   const DEFAULT_TIMEZONE = "Europe/Vilnius";
   const DEFAULT_RACE_DURATION_MINUTES = 120;
-  const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-  const ISO_DATE_TIME_RE =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?(Z|[+\-]\d{2}:\d{2})$/;
+  const MAX_RACE_DURATION_MINUTES = 360;
+  const ISO_DATE_TIME_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?(Z|[+\-]\d{2}:\d{2})$/;
 
   function isPlainObject(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -24,8 +23,12 @@
     }
   }
 
-  function readPositiveNumber(value, fallback) {
-    if (Number.isFinite(value) && value > 0) {
+  function isValidRaceDurationMinutes(value) {
+    return Number.isFinite(value) && value > 0 && value <= MAX_RACE_DURATION_MINUTES;
+  }
+
+  function readRaceDurationMinutes(value, fallback) {
+    if (isValidRaceDurationMinutes(value)) {
       return value;
     }
     return fallback;
@@ -44,17 +47,6 @@
     }
     const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
     return day <= maxDay;
-  }
-
-  function isValidIsoDateString(value) {
-    const match = ISO_DATE_RE.exec(value);
-    if (!match) {
-      return false;
-    }
-    const year = parseDigits(match[1]);
-    const month = parseDigits(match[2]);
-    const day = parseDigits(match[3]);
-    return isValidCalendarDate(year, month, day);
   }
 
   function isValidIsoDateTimeString(value) {
@@ -89,11 +81,6 @@
 
     return !Number.isNaN(new Date(value).getTime());
   }
-
-  function isValidIsoDateOrDateTimeString(value) {
-    return isValidIsoDateString(value) || isValidIsoDateTimeString(value);
-  }
-
   function validateRace(rawRace, index) {
     const path = `races[${index}]`;
     if (!isPlainObject(rawRace)) {
@@ -124,18 +111,11 @@
       throw new Error(`${path}.circuit must be a non-empty string.`);
     }
 
-    if (rawRace.durationMinutes !== undefined
-      && (!Number.isFinite(rawRace.durationMinutes) || rawRace.durationMinutes <= 0)) {
-      throw new Error(`${path}.durationMinutes must be a positive number when provided.`);
+    if (rawRace.durationMinutes !== undefined && !isValidRaceDurationMinutes(rawRace.durationMinutes)) {
+      throw new Error(
+        `${path}.durationMinutes must be a positive number not greater than ${MAX_RACE_DURATION_MINUTES}.`
+      );
     }
-  }
-
-  function parseDate(value) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return null;
-    }
-    return date;
   }
 
   function validateData(rawData, options = {}) {
@@ -192,15 +172,15 @@
     const fallbackSeason = Number.isInteger(options.fallbackSeason) && options.fallbackSeason > 0
       ? options.fallbackSeason
       : new Date().getUTCFullYear();
-    const fallbackDuration = readPositiveNumber(
+    const fallbackDuration = readRaceDurationMinutes(
       options.defaultRaceDurationMinutes,
       DEFAULT_RACE_DURATION_MINUTES
     );
-    if (!isNonEmptyString(rawData.lastUpdated)) {
-      throw new Error("data.json.lastUpdated must be a non-empty ISO date or date-time string.");
-    }
-    if (!isValidIsoDateOrDateTimeString(rawData.lastUpdated)) {
-      throw new Error("data.json.lastUpdated must be a valid ISO date or date-time string.");
+    if (rawData.defaultRaceDurationMinutes !== undefined
+      && !isValidRaceDurationMinutes(rawData.defaultRaceDurationMinutes)) {
+      throw new Error(
+        `data.json.defaultRaceDurationMinutes must be a positive number not greater than ${MAX_RACE_DURATION_MINUTES}.`
+      );
     }
 
     return {
@@ -209,8 +189,7 @@
         : fallbackSeason,
       timezone,
       timezoneLabel: isNonEmptyString(rawData.timezoneLabel) ? rawData.timezoneLabel : "",
-      lastUpdated: rawData.lastUpdated,
-      defaultRaceDurationMinutes: readPositiveNumber(
+      defaultRaceDurationMinutes: readRaceDurationMinutes(
         rawData.defaultRaceDurationMinutes,
         fallbackDuration
       ),
@@ -220,13 +199,13 @@
 
   const DataValidation = {
     DEFAULT_TIMEZONE,
+    DEFAULT_RACE_DURATION_MINUTES,
+    MAX_RACE_DURATION_MINUTES,
     isNonEmptyString,
-    parseDate,
     isPlainObject,
-    isValidIsoDateOrDateTimeString,
-    isValidIsoDateString,
     isValidIsoDateTimeString,
-    readPositiveNumber,
+    isValidRaceDurationMinutes,
+    readRaceDurationMinutes,
     validateData,
     validateRace,
     validateTimeZone

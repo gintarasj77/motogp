@@ -3,7 +3,6 @@ const elements = {
   themeToggleLabel: document.getElementById("theme-toggle-label"),
   seasonTag: document.getElementById("season-tag"),
   seasonHeading: document.getElementById("season-heading"),
-  lastUpdated: document.getElementById("last-updated"),
   calendarTimezone: document.getElementById("calendar-timezone"),
   today: document.getElementById("today"),
   nextTitle: document.getElementById("next-title"),
@@ -23,7 +22,8 @@ const elements = {
   raceList: document.getElementById("race-list"),
   errorPanel: document.getElementById("error-panel"),
   errorMessage: document.getElementById("error-message"),
-  errorRetry: document.getElementById("error-retry")
+  errorRetry: document.getElementById("error-retry"),
+  statusMessage: document.getElementById("status-message")
 };
 
 const THEME_KEY = "racepulse-theme";
@@ -34,13 +34,11 @@ const DEFAULT_TIMEZONE = "Europe/Vilnius";
 const DEFAULT_PAGE_TITLE = document.title || "MotoGP Countdown";
 const DEFAULT_SEASON_TAG = "MotoGP Season - Local Time";
 const DEFAULT_SEASON_HEADING = "Season Dashboard";
-const DEFAULT_LAST_UPDATED = "Last updated: -";
 const DEFAULT_CALENDAR_TIMEZONE = "All times local";
-const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let countdownIntervalId = null;
 let refreshIntervalId = null;
 let isReloading = false;
+let lastStatusMessage = "";
 
 function getStoredTheme() {
   try {
@@ -137,37 +135,24 @@ function getTimezoneLabel(data) {
   return data.timezone;
 }
 
-function formatDateOnlyLabel(value) {
-  const match = DATE_ONLY_RE.exec(value);
-  if (!match) {
-    return null;
-  }
+function clearStatusMessage() {
+  lastStatusMessage = "";
 
-  const monthIndex = Number.parseInt(match[2], 10) - 1;
-  const monthLabel = MONTH_NAMES_SHORT[monthIndex];
-  if (!monthLabel) {
-    return null;
+  if (elements.statusMessage) {
+    elements.statusMessage.textContent = "";
   }
-
-  return `${match[3]} ${monthLabel} ${match[1]}`;
 }
 
-function formatLastUpdated(lastUpdatedValue, timeZone) {
-  const dateOnlyLabel = formatDateOnlyLabel(lastUpdatedValue);
-  if (dateOnlyLabel) {
-    return dateOnlyLabel;
+function announceStatusMessage(message) {
+  if (!elements.statusMessage || typeof message !== "string" || !message.trim()) {
+    return;
+  }
+  if (message === lastStatusMessage) {
+    return;
   }
 
-  const parsed = new Date(lastUpdatedValue);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  }).format(parsed);
+  lastStatusMessage = message;
+  elements.statusMessage.textContent = message;
 }
 
 function resetHeaderLabels() {
@@ -179,10 +164,6 @@ function resetHeaderLabels() {
     elements.seasonHeading.textContent = DEFAULT_SEASON_HEADING;
   }
 
-  if (elements.lastUpdated) {
-    elements.lastUpdated.textContent = DEFAULT_LAST_UPDATED;
-  }
-
   if (elements.calendarTimezone) {
     elements.calendarTimezone.textContent = DEFAULT_CALENDAR_TIMEZONE;
   }
@@ -190,7 +171,7 @@ function resetHeaderLabels() {
   document.title = DEFAULT_PAGE_TITLE;
 }
 
-function applyHeaderLabels(data, timeZone) {
+function applyHeaderLabels(data) {
   const seasonLabel = Number.isInteger(data.season) && data.season > 0
     ? data.season.toString()
     : "";
@@ -209,13 +190,6 @@ function applyHeaderLabels(data, timeZone) {
 
   if (elements.calendarTimezone) {
     elements.calendarTimezone.textContent = `All times in ${timezoneLabel}`;
-  }
-
-  const lastUpdatedLabel = formatLastUpdated(data.lastUpdated, timeZone);
-  if (elements.lastUpdated) {
-    elements.lastUpdated.textContent = lastUpdatedLabel
-      ? `Last updated: ${lastUpdatedLabel}`
-      : "Last updated: -";
   }
 
   if (seasonLabel) {
@@ -238,6 +212,7 @@ function clearIntervals() {
 
 function setLoadingState() {
   resetHeaderLabels();
+  clearStatusMessage();
   elements.today.textContent = "-";
   elements.nextTitle.textContent = "Loading...";
   elements.nextRound.textContent = "";
@@ -256,6 +231,7 @@ function setLoadingState() {
     elements.calendarEmpty.hidden = true;
   }
   clearChildren(elements.raceList);
+  announceStatusMessage("Loading season data.");
 }
 
 function hideLoadError() {
@@ -281,6 +257,7 @@ function showLoadError(error) {
 
   elements.nextTitle.textContent = "Data load failed";
   elements.countdown.textContent = `Check ${DATA_FILE}`;
+  announceStatusMessage("Unable to load season data.");
 }
 
 function appendTextSpan(parent, className, text) {
@@ -374,6 +351,7 @@ function updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinu
     elements.nextCircuit.textContent = "-";
     elements.countdown.textContent = "All races finished";
     elements.countdownNote.textContent = "See you next season.";
+    announceStatusMessage("Season complete. All races finished.");
     return null;
   }
 
@@ -393,6 +371,11 @@ function updateCurrentOrNextRace(races, now, formatters, defaultRaceDurationMinu
 
   if (isUnderway) {
     elements.countdown.textContent = "Race underway";
+    announceStatusMessage(`${race.grandPrix} is underway.`);
+  } else {
+    announceStatusMessage(
+      `${race.grandPrix} is next on ${formatters.date.format(start)} at ${formatters.time.format(start)}.`
+    );
   }
 
   return { race, start, end, isUnderway };
@@ -441,7 +424,7 @@ async function init() {
   const timeZone = typeof data.timezone === "string" && data.timezone
     ? data.timezone
     : DEFAULT_TIMEZONE;
-  applyHeaderLabels(data, timeZone);
+  applyHeaderLabels(data);
   const defaultRaceDurationMinutes = Number.isFinite(data.defaultRaceDurationMinutes)
     && data.defaultRaceDurationMinutes > 0
     ? data.defaultRaceDurationMinutes

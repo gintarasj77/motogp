@@ -26,7 +26,6 @@ test("valid fixture passes validation", () => {
   const parsed = DataValidation.validateData(valid, validationOptions);
 
   assert.equal(parsed.timezone, "Europe/Vilnius");
-  assert.equal(parsed.lastUpdated, "2026-02-24");
   assert.equal(parsed.defaultRaceDurationMinutes, 120);
   assert.equal(parsed.races.length, 2);
 });
@@ -37,7 +36,6 @@ test("valid minimal fixture applies defaults", () => {
 
   assert.equal(parsed.season, 2026);
   assert.equal(parsed.timezone, "Europe/Vilnius");
-  assert.equal(parsed.lastUpdated, "2026-02-24");
   assert.equal(parsed.defaultRaceDurationMinutes, 120);
   assert.equal(parsed.races.length, 1);
 });
@@ -45,8 +43,35 @@ test("valid minimal fixture applies defaults", () => {
 test("project data.json passes validation", () => {
   const projectData = readJson(path.join(__dirname, "..", "data.json"));
   const parsed = DataValidation.validateData(projectData, validationOptions);
-  assert.equal(parsed.lastUpdated, projectData.lastUpdated);
+
+  assert.deepEqual(
+    Object.keys(parsed).sort(),
+    ["defaultRaceDurationMinutes", "races", "season", "timezone", "timezoneLabel"]
+  );
+  assert.equal(parsed.defaultRaceDurationMinutes, projectData.defaultRaceDurationMinutes);
   assert.equal(parsed.races.length, projectData.races.length);
+});
+
+test("rejects default race durations that exceed the maximum", () => {
+  const invalid = readFixture("valid-minimal.json");
+  invalid.defaultRaceDurationMinutes = DataValidation.MAX_RACE_DURATION_MINUTES + 1;
+
+  assert.throws(
+    () => DataValidation.validateData(invalid, validationOptions),
+    (error) => error instanceof Error
+      && error.message.includes("data.json.defaultRaceDurationMinutes must be a positive number not greater")
+  );
+});
+
+test("rejects per-race durations that exceed the maximum", () => {
+  const invalid = readFixture("valid-minimal.json");
+  invalid.races[0].durationMinutes = DataValidation.MAX_RACE_DURATION_MINUTES + 1;
+
+  assert.throws(
+    () => DataValidation.validateData(invalid, validationOptions),
+    (error) => error instanceof Error
+      && error.message.includes("races[0].durationMinutes must be a positive number not greater")
+  );
 });
 
 const invalidFixtures = [
@@ -81,14 +106,6 @@ const invalidFixtures = [
   {
     name: "invalid-non-increasing-dates.json",
     contains: "strictly increasing startIso order"
-  },
-  {
-    name: "invalid-last-updated.json",
-    contains: "data.json.lastUpdated must be a valid ISO date or date-time string"
-  },
-  {
-    name: "invalid-last-updated-overflow-date.json",
-    contains: "data.json.lastUpdated must be a valid ISO date or date-time string"
   }
 ];
 
